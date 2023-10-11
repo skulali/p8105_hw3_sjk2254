@@ -4,6 +4,79 @@ author: "Sharon Kulali"
 output: github_document
 ---
 
+## SetUp
+
+```{r, message = FALSE}
+# loading the needed libraries
+
+library(tidyverse)
+library(p8105.datasets)
+library(patchwork)
+```
+
+```{r}
+# setting visuals for plots
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+
+## Problem 1
+
+```{r}
+# loading the dataset
+
+data("instacart")
+
+# looking at the dataset
+
+insta_df = instacart |> 
+  as_tibble()
+```
+
+Instacart is an online grocery shopping service that allows individuals to shop online from local stores. The platform offers same-day delivery with purchases being able to be delivered within 2 hours. The `insta_df` dataset contains the online grocery orders from Instacart users in 2017. There are `r ncol(insta_df)` variables with `r nrow(insta_df)` observations. More specifically, the dataset has information about identifiers for the order (`order_id`), product (`product_id`), customer (`user_id`), aisle (`aisle_id`), and department (`department_id`). Additionally, there is information about the specific day (`order_dow`) and hour (`order_hour_of_day`) that the orders were placed.
+
+```{r}
+# examining the aisles
+
+insta_df |> 
+  group_by(aisle_id, aisle) |> 
+  count() |> 
+  arrange(desc(n))
+```
+
+The table above shows the the aisles arranged in decreasing order by most items. Overall, there are 134 different aisles with fresh vegetables and fruits being the most ordered items.
+
+```{r}
+# plotting the number of items ordered per aisle
+
+insta_df |> 
+  group_by(aisle) |> 
+  count() |> 
+  filter(n > 10000) |>
+  mutate(aisle = fct_reorder(aisle, n)) |> 
+  ggplot(aes(x = aisle, y = n)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust=1)) +
+  ggtitle("Number of Items Ordered in Each Aisle") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The plot above shows the number of items ordered in each aisle for aisles with more than 10,000 items ordered. You can see that fresh vegetables and fruits are the most ordered items because they have the highest points.
 
 
 
