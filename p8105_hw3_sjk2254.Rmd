@@ -48,7 +48,7 @@ insta_df = instacart |>
   as_tibble()
 ```
 
-Instacart is an online grocery shopping service that allows individuals to shop online from local stores. The platform offers same-day delivery with purchases being able to be delivered within 2 hours. The `insta_df` dataset contains the online grocery orders from Instacart users in 2017. There are `r ncol(insta_df)` variables with `r nrow(insta_df)` observations. More specifically, the dataset has information about identifiers for the order (`order_id`), product (`product_id`), customer (`user_id`), aisle (`aisle_id`), and department (`department_id`). Additionally, there is information about the specific day (`order_dow`) and hour (`order_hour_of_day`) that the orders were placed.
+Instacart is an online grocery shopping service that allows individuals to shop online from local stores. The platform offers same-day delivery with purchases being able to be delivered within 2 hours. The `insta_df` dataset contains the online grocery orders from Instacart users in 2017. There are `r ncol(insta_df)` variables with `r nrow(insta_df)` observations. More specifically, the dataset has information about identifiers for the order (`order_id`), product (`product_id`), customer (`user_id`), aisle (`aisle_id`), and department (`department_id`). Additionally, there is information about the specific day (`order_dow`) and hour (`order_hour_of_day`) that the orders were placed. In total, there are `r instacart |> select(product_id) |> distinct() |> count()` products found in `r instacart |> select(user_id, order_id) |> distinct() |> count()` orders from `r instacart |> select(user_id) |> distinct() |> count()` distinct users.
 
 ```{r}
 # examining the aisles
@@ -65,8 +65,7 @@ The table above shows the the aisles arranged in decreasing order by most items.
 # plotting the number of items ordered per aisle
 
 insta_df |> 
-  group_by(aisle) |> 
-  count() |> 
+  count(aisle) |> 
   filter(n > 10000) |>
   mutate(aisle = fct_reorder(aisle, n)) |> 
   ggplot(aes(x = aisle, y = n)) +
@@ -98,7 +97,7 @@ insta_df |>
   pivot_wider(
     names_from = order_dow,
     values_from = mean_hr) |> 
-  knitr::kable()
+  knitr::kable(digits = 2)
 ```
 
 The table above shows the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week. You can see that on average, Coffee Ice Cream is ordered more than Pink Lady Apples.
