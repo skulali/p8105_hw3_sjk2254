@@ -17,12 +17,6 @@ library(patchwork)
 ```{r}
 # setting visuals for plots
 
-knitr::opts_chunk$set(
-  fig.width = 6,
-  fig.asp = .6,
-  out.width = "90%"
-)
-
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
 options(
@@ -33,7 +27,6 @@ options(
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
-
 
 ## Problem 1
 
@@ -78,6 +71,8 @@ insta_df |>
 The plot above shows the number of items ordered in each aisle for aisles with more than 10,000 items ordered. You can see that fresh vegetables and fruits are the most ordered items because they have the highest points.
 
 ```{r, message = FALSE}
+# creating a table for the three most popular items
+
 insta_df |> 
   filter(aisle %in% c("baking ingredients","dog food care","packaged vegetables fruits")) |>  
   group_by(aisle) |> 
@@ -90,6 +85,8 @@ insta_df |>
 The table above shows three most popular items in each of the aisles baking ingredients, dog food care, and packaged vegetables fruits. You can see that packaged vegetables fruits has the most orders out of the three aisles.
 
 ```{r, message = FALSE}
+# creating a table for ice cream orders
+
 insta_df |> 
   filter(product_name %in% c("Pink Lady Apples","Coffee Ice Cream")) |> 
   group_by(product_name, order_dow) |> 
@@ -101,3 +98,101 @@ insta_df |>
 ```
 
 The table above shows the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week. You can see that on average, Coffee Ice Cream is ordered more than Pink Lady Apples.
+
+## Problem 2
+
+```{r}
+# loading the dataset
+
+data("brfss_smart2010")
+
+# looking at the dataset
+
+brfss_df = brfss_smart2010 |> 
+  as_tibble()
+```
+
+```{r}
+# cleaning the dataset
+
+brfss_df =
+  brfss_df |> 
+  janitor::clean_names() |> 
+  filter(topic == "Overall Health") |> 
+  filter(response %in% c("Poor","Fair","Good","Very Good","Excellent")) |> 
+  mutate(response = factor(response, levels = c("Poor","Fair","Good","Very Good","Excellent"))) |> 
+  mutate(response = ordered(response, levels = c("Poor","Fair","Good","Very Good","Excellent")))
+```
+
+The Selected Metropolitan Area Risk Trends (SMART) project uses the Behavioral Risk Factor Surveillance System (BRFSS) to analyze data from counties. The BRFSS is a government data set that is primary used to identify emerging health problems, establish and track health objectives, and develop and evaluate public health policies and programs. The dataset (`brfss_df`) has `r ncol(brfss_df)` variables with `r nrow(brfss_df)` observations and data ranging from years `r brfss_df |> pull(year) |> min()` to `r brfss_df |> pull(year) |> max()`. This dataset focuses on the health topic "Overall Health", specifically for responses from "Poor" to "Excellent".
+
+```{r}
+# filtering the data for 2002
+
+brfss_df |> 
+  filter(year == "2002") |> 
+  group_by(locationabbr) |>
+  summarise(num_locations = n_distinct(locationdesc)) |> 
+  filter(num_locations >= 7)
+```
+
+In 2002, 6 states, CT, FL, MA, NC, NJ, and PA, were observed at 7 or more locations.
+
+```{r, warning = FALSE}
+# filtering the data for 2010
+
+brfss_df |> 
+  filter(year == "2010") |> 
+  group_by(locationabbr) |> 
+  summarise(num_locations = n_distinct(locationdesc)) |> 
+  filter(num_locations >= 7)
+```
+
+In 2010, 14 states, CA, CO, FL, MA, MD, NC, NE, NJ, NY, OH, PA, SC, TX, and WA, were observed at 7 or more locations.
+
+```{r}
+# creating a a limited dataframe
+
+lm_df =
+  brfss_df |> 
+  filter(response == "Excellent") |> 
+  group_by(year, locationabbr) |> 
+  summarize(average_data_value = mean(data_value), .groups = "drop")
+```
+
+The above dataframe is limited to "Excellent" responses, and contains, year, state, and a variable that averages the data_value across locations within a state.
+
+```{r, warning = FALSE}
+# creating a spaghetti plot
+
+lm_df |> 
+  ggplot(aes(x = year, y = average_data_value, group = locationabbr, color = locationabbr)) +
+  geom_line() +
+  labs(
+    x = "Year",
+    y = "Average Data Value",
+    title = "Spaghetti Plot of Average Value Over Time by State"
+  ) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.key.size = unit(0.3, "lines"), legend.key.height = unit(0.3, "lines"))
+```
+
+The "spaghetti" plot above shows the average percentage of individuals that responded "Excellent" over time within a state. You can see that there is a lot of fluctuation in all the states and there isn't an average greater than 30%.
+
+```{r}
+# making a two-panel plot
+
+brfss_df |> 
+  filter(year %in% c(2006, 2010), locationabbr == "NY") |> 
+  ggplot(aes(x = data_value, fill = response)) +
+  geom_histogram(bins = 20, position = "dodge") +
+  facet_wrap(~year, nrow = 1) +
+  labs(
+    x = "Data Value",
+    y = "Frequency",
+    title = "Distribution of Data Value by Response in NY State"
+  ) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The two-panel plot above shows the distribution of data value for responses ("Poor" to "Excellent") among locations in NY state. You can see that on average, 2010 (right side) had higher data values than 2006 (left side).
