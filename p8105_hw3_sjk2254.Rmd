@@ -119,9 +119,8 @@ brfss_df =
   brfss_df |> 
   janitor::clean_names() |> 
   filter(topic == "Overall Health") |> 
-  filter(response %in% c("Poor","Fair","Good","Very Good","Excellent")) |> 
-  mutate(response = factor(response, levels = c("Poor","Fair","Good","Very Good","Excellent"))) |> 
-  mutate(response = ordered(response, levels = c("Poor","Fair","Good","Very Good","Excellent")))
+  filter(response %in% c("Poor","Fair","Good","Very good","Excellent")) |> 
+  mutate(response = fct_relevel(response, c("Poor","Fair","Good","Very good","Excellent")))
 ```
 
 The Selected Metropolitan Area Risk Trends (SMART) project uses the Behavioral Risk Factor Surveillance System (BRFSS) to analyze data from counties. The BRFSS is a government data set that is primary used to identify emerging health problems, establish and track health objectives, and develop and evaluate public health policies and programs. The dataset (`brfss_df`) has `r ncol(brfss_df)` variables with `r nrow(brfss_df)` observations and data ranging from years `r brfss_df |> pull(year) |> min()` to `r brfss_df |> pull(year) |> max()`. This dataset focuses on the health topic "Overall Health", specifically for responses from "Poor" to "Excellent".
