@@ -156,7 +156,7 @@ In 2010, 14 states, CA, CO, FL, MA, MD, NC, NE, NJ, NY, OH, PA, SC, TX, and WA, 
 lm_df =
   brfss_df |> 
   filter(response == "Excellent") |> 
-  group_by(year, locationabbr) |> 
+  group_by(year, locationabbr, locationdesc) |> 
   summarize(average_data_value = mean(data_value), .groups = "drop")
 ```
 
@@ -196,3 +196,131 @@ brfss_df |>
 ```
 
 The two-panel plot above shows the distribution of data value for responses ("Poor" to "Excellent") among locations in NY state. You can see that on average, 2010 (right side) had higher data values than 2006 (left side).
+
+## Problem 3
+
+```{r, message = FALSE}
+# loading the data sets
+
+accel_df = read_csv("data/nhanes_accel.csv")
+
+dem_df = read_csv("data/nhanes_covar.csv", skip = 4, na = c("NA", "Na"))
+```
+
+The National Health and Nutrition Examination Survey (NHANES) conducted a study looking at the accelerometers which are devices that measure vibration primarily used to study physical activity. They can measure Monitor-Independent Movement Summary (MIMS) in one minute intervals. The accelerometer dataset (`accel_df`) shows the accelerometer data for the MIMS values for each minute of a 24-hour day starting at midnight. There are `r ncol(accel_df)` variables with `r nrow(accel_df)` observations. The demographic dataset (`dem_df`) shows the participants' demographic data. There are `r ncol(dem_df)` variables with `r nrow(dem_df)` observations. It includes information about their sex, age, bmi, and education level. 
+
+```{r}
+# cleaning the accelerator dataset
+
+accel_df =
+  accel_df |> 
+  janitor::clean_names()|> 
+  pivot_longer(
+    min1:min1440,
+    names_to = "minute",
+    names_prefix = "min",
+    values_to = "mims_values"
+  )
+```
+
+The updated dataset was tidied to make the variable names neater and to make the minutes and MIMS values into their own columns.
+
+```{r}
+# cleaning the demographic dataset
+
+dem_df =
+  dem_df |> 
+  janitor::clean_names() |> 
+  mutate(
+    sex = case_match(sex,
+      1 ~ "male",
+      2 ~ "female"),
+    education = case_match(education,
+      1 ~ "less than high school",
+      2 ~ "high school equivalent",
+      3 ~ "more than high school")
+    ) |> 
+  filter(age >= "21") |> 
+  drop_na()
+```
+
+The updated dataset was tidied to make the variable names neater, exclude participants less than 21 years of age as well as those with missing demographic data, and encode the data with reasonable variable classes.
+
+```{r, message = FALSE}
+# joining the datasets
+
+ac_dem_df =
+  inner_join(accel_df, dem_df)
+```
+
+The two datasets were merged based on their id's which were labeled "seqn". This dataset had `r ncol(ac_dem_df)` variables with `r nrow(ac_dem_df)` observations.
+
+```{r, message = FALSE}
+# creating a table for sex + education
+
+ac_dem_df |> 
+  group_by(sex, education) |>
+  summarise(count = n())|> 
+  knitr::kable()
+```
+
+The table above shows the number of men and women in each education category. You can see that most males and females have more than a high school education.
+
+```{r, message = FALSE}
+# visualizing the age distribution
+
+ac_dem_df |> 
+  ggplot(aes(x = education, y = age, fill = sex))+
+  geom_boxplot() +
+  labs(
+    x = "Education Category",
+    y = "Age",
+    title = "Age Distributions by Education Category and Sex"
+  ) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The plot above shows the age distributions for men and women in each education category. You can see that in all categories, there's no age greater than 80. The median age for females in the educational categories are greater than males except for the "more than high school" category. 
+
+```{r, message = FALSE}
+# male vs. female per education plot
+
+ac_dem_df |> 
+  group_by(seqn, sex, education, age) |> 
+  summarise(total_activity = sum(mims_values)) |> 
+  ggplot(aes(x = age, y = total_activity, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~education) +
+  labs(
+    x = "Age",
+    y = "Total Activity",
+    title = "Total Activity vs. Age by Education Level"
+  ) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The plot above compares the men to women at each education level. A total activity variable was created that sums the MIMS values for each participant. You can see that in all education levels, there was a negative trend showing that as age increases, total activity decreases. This was similar for both women and men. On average, females have higher total activity than men except in the "less than high school" education category where at roughly age 45, there's a switch and males start to have higher values.
+
+```{r, message = FALSE}
+# making a 3-panel plot
+
+ac_dem_df |> 
+  mutate(minute = as.numeric(minute),
+         hour = (minute - 1) %/% 60 + 1) |> 
+  group_by(hour, education, sex) |> 
+  summarise(average_activity = mean(mims_values)) |> 
+  ggplot(aes(x = hour, y = average_activity, color = sex)) +
+  geom_line() +
+  scale_x_continuous(n.breaks=24) +
+  facet_wrap(~education, ncol = 1) +
+  labs(
+    x = "Hour of the Day",
+    y = "Average MIMS Value",
+    title = "24-Hour Activity Time Courses by Education Level"
+  ) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1)) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The plot above shows the 24-hour average activity time courses for each sex based on each education level. You can see that in all educational levels, there is little activity in the beginning hours (roughly 1 - 5), an increase in activity (roughly 5 - 10), a fairly steady amount of activity (roughly 10 - 19), and lastly, there is a decrease in activity (roughly 19 - 24). This could be due to sleeping patterns. In the early hours (roughly 1 - 5), most people are asleep, then they get up and start exercising (roughly 5 - 10). This then steadies off (roughly 10 - 19) due to people's general exercise habits then there's a decrease (roughly 19 - 24) as people go to sleep.
