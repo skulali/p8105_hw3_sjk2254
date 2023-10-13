@@ -170,31 +170,32 @@ lm_df |>
   labs(
     x = "Year",
     y = "Average Data Value",
+    color = "State",
     title = "Spaghetti Plot of Average Value Over Time by State"
   ) +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(legend.key.size = unit(0.3, "lines"), legend.key.height = unit(0.3, "lines"))
 ```
 
-The "spaghetti" plot above shows the average percentage of individuals that responded "Excellent" over time within a state. You can see that there is a lot of fluctuation in all the states and there isn't an average greater than 30%.
+The "spaghetti" plot above shows the average percentage of individuals that responded "Excellent" over time within a state from 2002 to 2010. You can see that there is a lot of fluctuation in all the states but it is mostly centered around 25%. This indicates that the average response for "Excellent" for the states was greater than approximately 10% and smaller than approximately 45%.
 
 ```{r}
 # making a two-panel plot
 
 brfss_df |> 
   filter(year %in% c(2006, 2010), locationabbr == "NY") |> 
-  ggplot(aes(x = data_value, fill = response)) +
-  geom_histogram(bins = 20, position = "dodge") +
+  ggplot(aes(x = response, y = data_value, group = locationdesc, color = locationdesc)) +
+  geom_line() +
   facet_wrap(~year, nrow = 1) +
   labs(
-    x = "Data Value",
-    y = "Frequency",
+    x = "Responses",
+    y = "Data Value",
     title = "Distribution of Data Value by Response in NY State"
   ) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-The two-panel plot above shows the distribution of data value for responses ("Poor" to "Excellent") among locations in NY state. You can see that on average, 2010 (right side) had higher data values than 2006 (left side).
+The two-panel plot above shows the distribution of data value for responses ("Poor" to "Excellent") among locations in NY state. You can see that the majority of responses was "Good" or "Very good" with values around 35%. Additionally, 2010 had higher values of "Very good" compared to 2006. 2010 also had more locations than 2006.
 
 ## Problem 3
 
@@ -237,7 +238,8 @@ dem_df =
     education = case_match(education,
       1 ~ "less than high school",
       2 ~ "high school equivalent",
-      3 ~ "more than high school")
+      3 ~ "more than high school"),
+    education = factor(education, levels = c("less than high school","high school equivalent","more than high school"), ordered = TRUE)
     ) |> 
   filter(age >= "21") |> 
   drop_na()
@@ -260,10 +262,14 @@ The two datasets were merged based on their id's which were labeled "seqn". This
 ac_dem_df |> 
   group_by(sex, education) |>
   summarise(count = n())|> 
+  pivot_wider(
+    names_from = education,
+    values_from = count
+  ) |> 
   knitr::kable()
 ```
 
-The table above shows the number of men and women in each education category. You can see that most males and females have more than a high school education.
+The table above shows the number of men and women in each education category. You can see that most males and females have more than a high school education. Notable, when looking at individuals with less than high school education, females had higher rates while when looking at individuals with high school equivalent education, males had higher rates.
 
 ```{r, message = FALSE}
 # visualizing the age distribution
@@ -279,7 +285,7 @@ ac_dem_df |>
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-The plot above shows the age distributions for men and women in each education category. You can see that in all categories, there's no age greater than 80. The median age for females in the educational categories are greater than males except for the "more than high school" category. 
+The plot above shows the age distributions for men and women in each education category. You can see that in all categories, there's no age greater than 80. The median age for females in the educational categories are greater than males except for the "more than high school" category. Additionally, the "high school equivalent" level has the greatest difference in distribution between the females and males.
 
 ```{r, message = FALSE}
 # male vs. female per education plot
@@ -289,7 +295,7 @@ ac_dem_df |>
   summarise(total_activity = sum(mims_values)) |> 
   ggplot(aes(x = age, y = total_activity, color = sex)) +
   geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(aes(group = sex), se = FALSE) +
   facet_wrap(~education) +
   labs(
     x = "Age",
@@ -299,7 +305,7 @@ ac_dem_df |>
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-The plot above compares the men to women at each education level. A total activity variable was created that sums the MIMS values for each participant. You can see that in all education levels, there was a negative trend showing that as age increases, total activity decreases. This was similar for both women and men. On average, females have higher total activity than men except in the "less than high school" education category where at roughly age 45, there's a switch and males start to have higher values.
+The plot above compares the men to women at each education level. A total activity variable was created that sums the MIMS values for each participant. You can see that in all education levels, there was a negative trend showing that as age increases, total activity decreases. This was similar for both women and men. On average, females have higher total activity than men except in the "less than high school" education category where at roughly age 40, there's a switch and males start to have higher values.
 
 ```{r, message = FALSE}
 # making a 3-panel plot
@@ -319,4 +325,4 @@ ac_dem_df |>
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-The plot above shows the 24-hour average activity time courses for each sex based on each education level. According to the trend lines, you can see that in all educational levels, there is little activity in the beginning minutes, an increase in activity, a fairly steady amount of activity, and lastly, there is a decrease in activity. This could be due to sleeping patterns. In the early hours, most people are asleep, then they get up and start exercising. This then steadies off due to people's general exercise habits then there's a decrease as people go to sleep. Overall, the more than high school education group has more MIMS values, on average, compared to the other two educational groups. Between the sex, there is fairly similar patterns except in the more than high school education level where the males have a noticeable greater increase in MIMS values than females, during the later minutes. 
+The plot above shows the 24-hour average activity time courses for each sex based on each education level. According to the trend lines, you can see that in all educational levels, there is little activity in the beginning minutes, an increase in activity, a fairly steady amount of activity, and lastly, there is a decrease in activity. This could be due to sleeping patterns. In the early hours, most people are asleep, then they get up and start exercising. This then steadies off due to people's general exercise habits then there's a decrease as people go to sleep. Overall, the more than high school education group has more MIMS values, on average, compared to the other two educational groups. This could be due to work schedules where people only have time before and after work. Between the sex, there is fairly similar patterns except in the more than high school education level where the males have a noticeable greater increase in MIMS values than females, during the later minutes. 
